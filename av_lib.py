@@ -1,6 +1,7 @@
 
 import requests as http
 import streamlit as st
+import plotly.graph_objects as go
 
 AV_URL = 'https://alphavantage.co/query'
 
@@ -11,7 +12,6 @@ def get_api_key():
 #@st.cache
 def fetch_data(url: str) -> str:
     req = http.get(url)
-    data = None
     if req.status_code != 200:
         raise Exception(f'Request error: {req.status_code} - {req.content}')
     return str(req.content, 'utf-8')
@@ -75,6 +75,36 @@ def symbol_search(api_key, keywords, data_type = 'csv'):
         raise Exception(f'Invalid data type: {data_type}')
     
     return f'{AV_URL}?{params}'
+
+def make_candlestick(symbol, data, title, x='timestamp', open='open', high='high', low='low', close='close'):
+    fig = go.Figure(
+        data=[
+            go.Candlestick(
+                x = data[x],
+                open = data[open],
+                high = data[high],
+                low = data[low],
+                close = data[close],
+                name = symbol.tick()
+            )
+        ],
+        layout_title = title
+    )
+
+    fig.update_layout(
+        autosize=True,
+        height = 700,
+        margin = {
+            'l': 50,
+            'r': 50,
+            'b': 50,
+            't': 100,
+            'pad': 4 
+        }
+    )
+
+    return fig
+
 
 class Symbol:
     def __init__(self, tick: str, name: str, region: str) -> None:

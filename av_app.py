@@ -11,6 +11,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import plotly.graph_objects as go
+import plotly.express as px
 
 def main():
 
@@ -32,44 +33,44 @@ def main():
         symbols = fetch_data(search_url)
         symbols = json.loads(symbols)['bestMatches']
         symbols = list(map( lambda x: Symbol.from_dict(x), symbols))
-        selected_symbols = st.sidebar.multiselect('Select symbols:', symbols)
+        selected_symbols.append(st.sidebar.selectbox('Select symbol:', symbols))
 
     for symbol in selected_symbols:
-        url = daily_adjusted_query(api_key, symbol.tick())
-        data = fetch_data(url)
-        data = StringIO(data)
-        data = pd.read_csv(data)
-        st.write(data)
-        data['timestamp'] = pd.to_datetime(data['timestamp'])
 
+        st.markdown(f'## {symbol.tick()} - {symbol.name()}')
 
-        fig = go.Figure(
-            data=[
-                go.Candlestick(
-                    x = data['timestamp'],
-                    open = data['open'],
-                    high = data['high'],
-                    low = data['low'],
-                    close = data['close'],
-                    name = 'IBM'
-                )
-            ],
-            layout_title = symbol.name()
+        url = daily_adjusted_query(api_key, symbol.tick(), 'full')
+        data = None
+        try:
+            data = fetch_data(url)
+            data = StringIO(data)
+            data = pd.read_csv(data)
+        except Exception as e:
+            st.error(e)
+        #st.write(data)
+
+        try:
+            data['timestamp'] = pd.to_datetime(data['timestamp'])
+        except:
+            st.error(f'Query error - symbol: {symbol}')
+
+        candlestick = make_candlestick(symbol, data, title=f'Daily Stock Price - {symbol.tick()}')
+        st.write(candlestick)
+
+        log_y = st.sidebar.checkbox('Log scale')
+
+        adj_close = px.line(
+            data_frame=data, 
+            x='timestamp', 
+            y='adjusted_close', 
+            title=f'Adjusted Stock Price - {symbol.tick()}',
+            labels={
+                'timestamp': 'Date',
+                'adjusted_close': 'Price'
+            },
+            log_y=log_y
         )
-
-        fig.update_layout(
-            autosize=True,
-            height = 700,
-            margin = {
-                'l': 50,
-                'r': 50,
-                'b': 50,
-                't': 100,
-                'pad': 4 
-            }
-        )
-
-        st.write(fig)
+        st.write(adj_close)
 
 
 if __name__ == '__main__':
