@@ -29,7 +29,7 @@ def main():
     keywords = st.sidebar.text_input('Search symbols:')
     selected_symbols = []
     if len(keywords) > 0:
-        search_url = symbol_search(api_key, keywords, data_type='json')
+        search_url = symbol_search_query(api_key, keywords, data_type='json')
         symbols = fetch_data(search_url)
         symbols = json.loads(symbols)['bestMatches']
         symbols = list(map( lambda x: Symbol.from_dict(x), symbols))
