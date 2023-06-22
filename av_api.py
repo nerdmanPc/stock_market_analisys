@@ -70,11 +70,9 @@ def income_statement_query(api_key, symbol):
     params = f'function=INCOME_STATEMENT&apikey={api_key}&symbol={symbol}'
     return f'{AV_ENDPOINT}?{params}'
 
-
 def balance_sheet_query(api_key, symbol):
     params = f'function=BALANCE_SHEET&apikey={api_key}&symbol={symbol}'
     return f'{AV_ENDPOINT}?{params}'
-
 
 def cash_flow_query(api_key, symbol):
     params = f'function=CASH_FLOW&apikey={api_key}&symbol={symbol}'
@@ -83,7 +81,6 @@ def cash_flow_query(api_key, symbol):
 def earnings_query(api_key, symbol):
     params = f'function=EARNINGS&apikey={api_key}&symbol={symbol}'
     return f'{AV_ENDPOINT}?{params}'
-
 
 def symbol_search_query(api_key, keywords, data_type='json'):
     params = params = f'function=SYMBOL_SEARCH&apikey={api_key}&keywords={keywords}'
