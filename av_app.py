@@ -1,4 +1,4 @@
-from av_lib import *
+from av_api import *
 import streamlit as st
 
 import requests as http

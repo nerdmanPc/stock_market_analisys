@@ -1,5 +1,6 @@
 
 import requests as http
+from time import sleep
 #import streamlit as st
 import plotly.graph_objects as go
 import pandas as pd
@@ -20,13 +21,16 @@ def get_tick_list(list_path):
 
 #@st.cache
 def fetch_data(url: str) -> str:
+    sleep(12)
     req = http.get(url)
     if req.status_code != 200:
         raise Exception(f'Request error: {req.status_code} - {req.content}')
     data = str(req.content, 'utf-8')
-    if data.count('\n') <= 3:
+    try:
         err_msg = json.loads(data)['Error Message']
         raise Exception(f'API error!\nMessage: {err_msg}\nURL: {url}')
+    except:
+        pass
     return data
 
 def intraday_query(api_key, symbol, interval_mins, output_size='compact', data_type='csv'):
@@ -108,6 +112,10 @@ def decode_fundamentals(data: str) -> pd.DataFrame:
     else:
         data = data['annualReports']
     return pd.DataFrame(data)
+
+def decode_company_data(data: str) -> pd.DataFrame:
+    data = json.loads(data)
+    return pd.DataFrame([data])
 
 def make_candlestick(symbol, data, title, x='timestamp', open='open', high='high', low='low', close='close'):
     fig = go.Figure(
