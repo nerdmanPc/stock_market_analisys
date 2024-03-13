@@ -1,0 +1,16 @@
+earnings_yield = eps/price
+adj_earnings_yield = 1 + eps/price
+log_adj_ey = log(1 + eps/price)
+
+revenue_yield = rps/price
+cost_margin = cps/price
+
+Rf = Ra*A + Rb*B + (1-A-B)*RO
+
+Rf = A*Ra + B*Rb + Ro - A*Ro - B*Ro
+
+Rf = A*(Ra - Ro) + B*(Rb - Ro) + Ro
+
+stakes = capital/salary
+utility = log(return * capital / salary)
+utility = log(return) + log(capital) - log(spending)
