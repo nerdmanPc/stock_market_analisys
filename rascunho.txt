@@ -14,3 +14,11 @@ Rf = A*(Ra - Ro) + B*(Rb - Ro) + Ro
 stakes = capital/salary
 utility = log(return * capital / salary)
 utility = log(return) + log(capital) - log(spending)
+
+income_multiplyer_factor = (income + return * capital) / income
+
+income_multiplyer_factor = new_income / old_income
+imf = salary + (return-1)*capital / salary + (return_o-1)*capital
+imf = salary + (return-1)*capital / salary
+imf = 1 + (return-1)*capital/salary
+utility = log(1 + abs_return*stakes)
