@@ -2,8 +2,11 @@ import pandas as pd
 import json
 from datetime import timedelta
 
-def load_company(cik: int) -> dict:
-    return json.load(open(f'data/sec/companyfacts/CIK{str(cik).zfill(10)}.json'))
+def load_company(cik: int) -> dict | None:
+    try: 
+        return json.load(open(f'data/sec/companyfacts/CIK{str(cik).zfill(10)}.json'))
+    except FileNotFoundError:
+        return None
 
 def get_time_series(sec_data: dict, col_name: str, currency: str='USD') -> pd.DataFrame:
     time_series = sec_data['facts']['us-gaap'][col_name]['units'][currency]
@@ -23,18 +26,26 @@ def drop_unused_columns(time_series: pd.DataFrame):
     time_series.drop(columns=['frame', 'accn', 'start', 'form'], inplace=True)
 
 def get_current_quarters_years(time_series: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
-    is_current = (time_series['delay'] < timedelta(days=45))
+    is_current = (time_series['delay'] < timedelta(days=60))
     is_quarter = (time_series['period'] < timedelta(days=135))
     is_fiscal_year = (time_series['period'] > timedelta(days=315))
-    quarters = time_series[ is_current & is_quarter ] 
-    years = time_series[ is_current & is_fiscal_year ]
+    quarters = pd.DataFrame(time_series[ is_current & is_quarter ] )
+    years = pd.DataFrame(time_series[ is_current & is_fiscal_year ])
     return (quarters, years)
 
-def add_q4(fiscal_year: pd.DataFrame, fy_quarters: pd.DataFrame) -> pd.DataFrame: 
-    if (fy_quarters.fp == 'FY').any() or fiscal_year.empty: 
+def add_q4(fy_quarters: pd.DataFrame, fiscal_year: pd.DataFrame) -> pd.DataFrame: 
+    if (
+        (fy_quarters.fp == 'FY').any() or
+        (fy_quarters.fp == 'Q1').sum() != 1 or
+        (fy_quarters.fp == 'Q2').sum() != 1 or
+        (fy_quarters.fp == 'Q3').sum() != 1 or 
+        fiscal_year.empty
+    ): 
         return fy_quarters
-    year_row = fiscal_year.iloc[0]
-    q1_row, q2_row, q3_row = fy_quarters[fy_quarters.fp == 'Q1'].iloc[0], fy_quarters[fy_quarters.fp == 'Q2'].iloc[0], fy_quarters[fy_quarters.fp == 'Q3'].iloc[0]
+    year_row = fiscal_year.sort_values('delay', ascending=False).iloc[0]
+    q1_row = fy_quarters[fy_quarters.fp == 'Q1'].sort_values('delay', ascending=False).iloc[0] 
+    q2_row = fy_quarters[fy_quarters.fp == 'Q2'].sort_values('delay', ascending=False).iloc[0]
+    q3_row = fy_quarters[fy_quarters.fp == 'Q3'].sort_values('delay', ascending=False).iloc[0]
     q4 = {
         'end': [year_row.end],
         'val': [year_row.val - q3_row.val - q2_row.val - q1_row.val],
@@ -44,7 +55,8 @@ def add_q4(fiscal_year: pd.DataFrame, fy_quarters: pd.DataFrame) -> pd.DataFrame
         'delay': [year_row.delay],
         'period': [year_row.end - (q3_row.end + timedelta(days=1))],
     }
-    fy_quarters = pd.concat([fy_quarters, pd.DataFrame(q4)], axis='index')
+    if q4['period'][0] < timedelta(days=135): 
+        fy_quarters = pd.concat([fy_quarters, pd.DataFrame(q4)], axis='index', ignore_index=True)
     return fy_quarters
 
 '''
