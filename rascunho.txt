@@ -2,6 +2,11 @@ earnings_yield = eps/price
 adj_earnings_yield = 1 + eps/price
 log_adj_ey = log(1 + eps/price)
 
+today_close = yday_close * aey
+log_tc = log_yc + log_aey
+log_return = log_yc + log_aey - log_yc
+log_return = log_aey
+
 revenue_yield = rps/price
 cost_margin = cps/price
 
@@ -22,3 +27,27 @@ imf = salary + (return-1)*capital / salary + (return_o-1)*capital
 imf = salary + (return-1)*capital / salary
 imf = 1 + (return-1)*capital/salary
 utility = log(1 + abs_return*stakes)
+
+ex_tdy_log_close = log_ydy_close + ex_log_adj_earnings_yield
+log_return = ex_tdy_log_close - log_ydy_close
+ex_tdy_log_close = log_return + log_ydy_close
+
+log_return = ex_log_adj_earnings_yield
+
+1 + eps/close = adj_ey
+eps/close = adj_ey - 1
+close/eps = 1/(adj_ey -1)
+
+
+close = yday_close * e1
+close = eps/(adj_ey-1) * e2
+
+close = eps - (adj_ey-1) + e2
+e2 = close + (adj_ey-1) - eps
+
+
+
+close = yday_close * adj_ey * e2
+
+close = yday_close + e1               =>     e1 = close - yday_close = return
+close = yday_close + adj_ey + e2      =>     e2 = close - yday_close - adj_ey = return - adj_ey

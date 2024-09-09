@@ -2,3 +2,5 @@ api-key.txt
 exploration_2.ipynb
 data/
 __pycache__
+.ipynb_checkpoints
+.jupyter
