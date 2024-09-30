@@ -1,6 +1,8 @@
-earnings_yield = eps/price
-adj_earnings_yield = 1 + eps/price
-log_adj_ey = log(1 + eps/price)
+earnings_yield = eps/price_1
+adj_earnings_yield = 1 + eps/price_1
+log_adj_ey_i = log(1 + eps/price_i)
+
+log_price_0 = a(log_adj_ey_1)  + b(log_adj_ey_2)
 
 today_close = yday_close * aey
 log_tc = log_yc + log_aey
