@@ -1,171 +1,228 @@
 
 import requests as http
 from time import sleep
-#import streamlit as st
-import plotly.graph_objects as go
-import pandas as pd
-from io import StringIO
 import json
+from datetime import date
+
 AV_ENDPOINT = 'https://alphavantage.co/query'
+
+class AlphaVantage:
+
+    def __init__(self, api_key=None, request_callback=None) -> None:
+        self._api_key = api_key or get_api_key()
+        self._fetch_data = request_callback or fetch_data
+
+    def search_symbol(self, keywords, data_type='json') -> str:
+        query = self.symbol_search_query(keywords, data_type)
+        return self._fetch_data(query)
+
+    def symbol_search_query(self, keywords, data_type='json') -> str:
+        arguments = {
+            'function': 'SYMBOL_SEARCH',
+            'apikey': self._api_key,
+            'keywords': keywords,
+            'datatype': data_type
+        }
+        validate_arguments(**arguments)
+        arguments = assemble_arguments(**arguments)
+        return f'{AV_ENDPOINT}?{arguments}'
+    
+    def get_intraday(self, symbol, interval_mins, output_size='full', data_type='json') -> str:
+        query = self.intraday_query(symbol, interval_mins, output_size, data_type)
+        return self._fetch_data(query)
+
+    def intraday_query(self, symbol, interval_mins, output_size='full', data_type='json') -> str:
+        arguments = {
+            'function': 'TIME_SERIES_INTRADAY',
+            'apikey': self._api_key,
+            'symbol': symbol,
+            'interval': interval_mins,
+            'outputsize': output_size,
+            'datatype': data_type
+        }
+        validate_arguments(**arguments)
+        arguments = assemble_arguments(**arguments)
+        return f'{AV_ENDPOINT}?{arguments}'
+    
+    def get_daily_adjusted(self, symbol, output_size='full', data_type='json') -> str:
+        query = self.daily_adjusted_query(symbol, output_size, data_type)
+        return self._fetch_data(query)
+
+    def daily_adjusted_query(self, symbol, output_size='full', data_type='json') -> str:
+        arguments = {
+            'function': 'TIME_SERIES_DAILY_ADJUSTED',
+            'apikey': self._api_key,
+            'symbol': symbol,
+            'outputsize': output_size,
+            'datatype': data_type
+        }
+        validate_arguments(**arguments)
+        arguments = assemble_arguments(**arguments)
+        return f'{AV_ENDPOINT}?{arguments}'
+    
+    def get_weekly_adjusted(self, symbol, data_type='json') -> str:
+        query = self.weekly_adjusted_query(symbol, data_type)
+        return self._fetch_data(query)
+
+    def weekly_adjusted_query(self, symbol, data_type='json') -> str:
+        arguments = {
+            'function': 'TIME_SERIES_WEEKLY_ADJUSTED',
+            'apikey': self._api_key,
+            'symbol': symbol,
+            'datatype': data_type
+        }
+        validate_arguments(**arguments)
+        arguments = assemble_arguments(**arguments)
+        return f'{AV_ENDPOINT}?{arguments}'
+    
+    def get_company_overview(self, symbol) -> str:
+        query = self.company_overview_query(symbol)
+        return self._fetch_data(query)
+
+    def company_overview_query(self, symbol) -> str:
+        params = f'function=OVERVIEW&apikey={self._api_key}&symbol={symbol}'
+        return f'{AV_ENDPOINT}?{params}'
+    
+    def get_income_statement(self, symbol) -> str:
+        query = self.income_statement_query(symbol)
+        return self._fetch_data(query)
+
+    def income_statement_query(self, symbol) -> str:
+        params = f'function=INCOME_STATEMENT&apikey={self._api_key}&symbol={symbol}'
+        return f'{AV_ENDPOINT}?{params}'
+
+    def get_balance_sheet(self, symbol) -> str:
+        query = self.balance_sheet_query(symbol)
+        return self._fetch_data(query)
+
+    def balance_sheet_query(self, symbol) -> str:
+        params = f'function=BALANCE_SHEET&apikey={self._api_key}&symbol={symbol}'
+        return f'{AV_ENDPOINT}?{params}'
+    
+    def get_cash_flow(self, symbol) -> str:
+        query = self.cash_flow_query(symbol)
+        return self._fetch_data(query)
+
+    def cash_flow_query(self, symbol) -> str:
+        params = f'function=CASH_FLOW&apikey={self._api_key}&symbol={symbol}'
+        return f'{AV_ENDPOINT}?{params}'
+    
+    def get_earnings(self, symbol) -> str:
+        query = self.earnings_query(symbol)
+        return self._fetch_data(query)
+
+    def earnings_query(self, symbol) -> str:
+        params = f'function=EARNINGS&apikey={self._api_key}&symbol={symbol}'
+        return f'{AV_ENDPOINT}?{params}'
+    
+def validate_arguments(**kw_args):
+    match kw_args['function']:
+        case 'SYMBOL_SEARCH':
+            data_type = kw_args['datatype']
+            if not(data_type == 'csv' or data_type == 'json'):
+                raise Exception(f'Invalid data type: {data_type}')
+        case 'TIME_SERIES_INTRADAY':
+            interval_mins = kw_args['interval']
+            if not(interval_mins in [1, 5, 30, 60, '1', '5', '30', '60']):
+                raise Exception(f'Invalid interval: {interval_mins}')
+            output_size = kw_args['outputsize']
+            if not(output_size == 'full' or output_size == 'full'):
+                raise Exception(f'Invalid output size: {output_size}')
+            data_type = kw_args['datatype']
+            if not(data_type == 'csv' or data_type == 'json'):
+                raise Exception(f'Invalid data type: {data_type}')
+        case ('TIME_SERIES_DAILY_ADJUSTED'):
+            output_size = kw_args['outputsize']
+            if not(output_size == 'full' or output_size == 'full'):
+                raise Exception(f'Invalid output size: {output_size}')
+            data_type = kw_args['datatype']
+            if not(data_type == 'csv' or data_type == 'json'):
+                raise Exception(f'Invalid data type: {data_type}')
+        case ('TIME_SERIES_WEEKLY_ADJUSTED'):
+            data_type = kw_args['datatype']
+            if not(data_type == 'csv' or data_type == 'json'):
+                raise Exception(f'Invalid data type: {data_type}')
+        case ('OVERVIEW'|'INCOME_STATEMENT'|'BALANCE_SHEET'|'CASH_FLOW'|'EARNINGS'): pass
+        case invalid_function : raise Exception(f'Invalid function: {invalid_function}')
+
+def assemble_arguments(**kw_args) -> str:
+    pairs = [f'{name}={value}' for name, value in kw_args.items()]
+    return '&'.join(pairs)
+
+def extract_arguments(url: str) -> dict[str, str]:
+    [endpoint, args] = url.split('?')
+    args = { arg.split('=')[0]: arg.split('=')[1] for arg in args.split('&') }
+    args['ENDPOINT'] = endpoint
+    return args
+
 
 def get_api_key():
     with open('api-key.txt') as file:
         return file.read()
 
-def get_tick_list(list_path):
-    with open(list_path) as file:
-        ticks = []
-        for line in file.readlines():
-            ticks.append(line.rstrip())
-        return ticks
-
-#@st.cache
 def fetch_data(url: str) -> str:
-    sleep(12)
+    print(f'Fetching data from: {url}')
     req = http.get(url)
     if req.status_code != 200:
-        raise Exception(f'Request error: {req.status_code} - {req.content}')
+        raise Exception(f'Request error {req.status_code}:\n{req.content}')
     data = str(req.content, 'utf-8')
-    try:
-        err_msg = json.loads(data)['Error Message']
-        raise Exception(f'API error!\nMessage: {err_msg}\nURL: {url}')
-    except:
-        pass
+    check_api_error(data, url)
+    print('Fetching successful!')
     return data
 
-def intraday_query(api_key, symbol, interval_mins, output_size='compact', data_type='csv'):
-    params = f'function=TIME_SERIES_INTRADAY&apikey={api_key}&symbol={symbol}'
-    if \
-        interval_mins == 1 or interval_mins == '1' or \
-        interval_mins == 5 or interval_mins == '5' or \
-        interval_mins == 30 or interval_mins == '30' or \
-        interval_mins == 60 or interval_mins == '60' \
-    :
-        params += f'&interval={interval_mins}min'
-    else:
-        raise Exception(f'Invalid interval: {interval_mins}')
-    if output_size == 'compact' or output_size == 'full':
-        params += f'&outputsize={output_size}'
-    else:
-        raise Exception(f'Invalid output size: {output_size}')
-    if data_type == 'csv' or data_type == 'json':
-        params += f'&datatype={data_type}'
-    else:
-        raise Exception(f'Invalid data type: {data_type}')
-    return f'{AV_ENDPOINT}?{params}'
+def check_api_error(data: str, url: str):
+    err_msg = None
+    try: # Happy path is when there is no 'Error Message'
+        err_msg = json.loads(data)['Error Message']
+    except: pass
+    try:
+        err_msg = json.loads(data)['Information']
+    except: pass
+    if err_msg: 
+        raise Exception(f'API error!\nMessage: {err_msg}\nURL: {url}')
 
-def daily_adjusted_query(api_key, symbol, output_size='compact', data_type='csv'):
-    params = f'function=TIME_SERIES_DAILY_ADJUSTED&apikey={api_key}&symbol={symbol}'
-    if output_size == 'compact' or output_size == 'full':
-        params += f'&outputsize={output_size}'
-    else:
-        raise Exception(f'Invalid output size: {output_size}')
-    if data_type == 'csv' or data_type == 'json':
-        params += f'&datatype={data_type}'
-    else:
-        raise Exception(f'Invalid data type: {data_type}')
-    return f'{AV_ENDPOINT}?{params}'
 
-def company_overview_query(api_key, symbol):
-    params = f'function=OVERVIEW&apikey={api_key}&symbol={symbol}'
-    return f'{AV_ENDPOINT}?{params}'
+def decode_price_data(data: str, tick: str) -> list[tuple]:
+    data = json.loads(data)["Weekly Adjusted Time Series"]
+    return [decode_row((tick, timestamp, *row.values())) for timestamp, row in data.items()]
 
-def income_statement_query(api_key, symbol):
-    params = f'function=INCOME_STATEMENT&apikey={api_key}&symbol={symbol}'
-    return f'{AV_ENDPOINT}?{params}'
-
-def balance_sheet_query(api_key, symbol):
-    params = f'function=BALANCE_SHEET&apikey={api_key}&symbol={symbol}'
-    return f'{AV_ENDPOINT}?{params}'
-
-def cash_flow_query(api_key, symbol):
-    params = f'function=CASH_FLOW&apikey={api_key}&symbol={symbol}'
-    return f'{AV_ENDPOINT}?{params}'
-
-def earnings_query(api_key, symbol):
-    params = f'function=EARNINGS&apikey={api_key}&symbol={symbol}'
-    return f'{AV_ENDPOINT}?{params}'
-
-def symbol_search_query(api_key, keywords, data_type='json'):
-    params = params = f'function=SYMBOL_SEARCH&apikey={api_key}&keywords={keywords}'
-    if data_type == 'csv' or data_type == 'json':
-        params += f'&datatype={data_type}'
-    else:
-        raise Exception(f'Invalid data type: {data_type}')
-    return f'{AV_ENDPOINT}?{params}'
-
-def decode_price_data(data: str) -> pd.DataFrame:
-    return pd.read_csv(StringIO(data))
-
-def decode_earnings_data(data: str) -> pd.DataFrame:
+def decode_earnings_data(data: str, tick: str):
     data = json.loads(data)
     if 'quarterlyEarnings' in data:
         data = data['quarterlyEarnings']
-    else:
+    elif 'annualEarnings' in data:
         data = data['annualEarnings']
-    return pd.DataFrame(data)
-
-def decode_fundamentals(data: str) -> pd.DataFrame:
-    data = json.loads(data)
-    if 'quarterlyEarnings' in data:
-        data = data['quarterlyReports']
     else:
-        data = data['annualReports']
-    return pd.DataFrame(data)
+        raise Exception(f'Malformed earnings data:\n{data}')
+    return [decode_row((tick, *row.values())) for row in data]
 
-def decode_company_data(data: str) -> pd.DataFrame:
+def decode_fundamentals(data: str, tick: str) -> list[tuple]:
     data = json.loads(data)
-    return pd.DataFrame([data])
+    if 'quarterlyReports' in data:
+        data = data['quarterlyReports']
+    elif 'annualReports' in data:
+        data = data['annualReports']
+    else:
+        raise Exception(f'Malformed fundamental data:\n{data}')
+    return [decode_row((tick, *row.values())) for row in data]
 
-def make_candlestick(symbol, data, title, x='timestamp', open='open', high='high', low='low', close='close'):
-    fig = go.Figure(
-        data=[
-            go.Candlestick(
-                x = data[x],
-                open = data[open],
-                high = data[high],
-                low = data[low],
-                close = data[close],
-                name = symbol.tick()
-            )
-        ],
-        layout_title = title
-    )
+def decode_company_data(data: str) -> list[tuple]:
+    data = json.loads(data)
+    return [decode_row(data.values())]
 
-    fig.update_layout(
-        autosize=True,
-        height = 700,
-        margin = {
-            'l': 50,
-            'r': 50,
-            'b': 50,
-            't': 100,
-            'pad': 4 
-        }
-    )
-
-    return fig
-
-
-class Symbol:
-    def __init__(self, tick: str, name: str, region: str) -> None:
-        self._tick = tick
-        self._name = name
-        self._region = region
-
-    def __str__(self) -> str:
-        return f'{self._tick} | {self._name} | {self._region}'
-
-    @classmethod
-    def from_dict(cls, dict):
-        return Symbol(dict['1. symbol'], dict['2. name'], dict['4. region'])
-    
-    #@classmethod
-    #def from_json(cls, data: str):
-    #    return cls.from_dict(json.loads(data))
-
-    def tick(self) -> str:
-        return self._tick
-
-    def name(self) -> str:
-        return self._name
+def decode_row(row: list[str]) -> tuple:
+    if not row:
+        return ()
+    head, *tail = row
+    if head == 'None':
+        return (None, *decode_row(tail))
+    try: 
+        return (int(head), *decode_row(tail))
+    except: pass
+    try: 
+        return (float(head), *decode_row(tail))
+    except: pass
+    try: 
+        return (date.fromisoformat(head), *decode_row(tail))
+    except: pass
+    return (head, *decode_row(tail))

@@ -13,7 +13,7 @@ def build_prices_table(directory: str, period: str, market: str) -> pd.DataFrame
     pathes = Path(f'{directory}/{period}/{market}').glob(f'* stocks/*/*.{market}.txt')
     tables = [load_table(path) for path in pathes if path]
     tables = pd.concat(tables)
-    tables.drop(columns=['<PER>', '<OPENINT>', '<TIME>'], inplace=True, errors='ignore')
+    tables.drop(columns=['<PER>', '<OPENINT>'], inplace=True, errors='ignore')
     tables['<DATE>'] = pd.to_datetime(tables['<DATE>'].astype(str))
     tables.reset_index(drop=True, inplace=True)
     tables.sort_values(['<TICKER>', '<DATE>'], inplace=True)
