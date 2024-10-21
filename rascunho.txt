@@ -39,6 +39,7 @@ log_return = ex_log_adj_earnings_yield
 1 + eps/close = adj_ey
 eps/close = adj_ey - 1
 close/eps = 1/(adj_ey -1)
+close = eps/(adj_ey - 1)
 
 
 close = yday_close * e1
